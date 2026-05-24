@@ -145,9 +145,9 @@ curl -N https://<HF_USERNAME>-<HF_SPACE_NAME>.hf.space/sse
 ## CI/CD Pipeline
 
 ```
-                ┌→ Test (pytest + coverage) ───┐
-Push to main ───┤                              ├→ Build & Snyk Scan → Push to Docker Hub → Deploy to HF Spaces
-                └──────────────────────────────┘
+                        ┌→ Test (pytest + coverage) ───┐
+Push to main ───────────┤                              ├→ Push to Docker Hub → Deploy to HF Spaces
+                        └→ Build & Snyk Scan ──────────┘
 ```
 
 - **Test** and **Build & Snyk Scan** run in parallel.
