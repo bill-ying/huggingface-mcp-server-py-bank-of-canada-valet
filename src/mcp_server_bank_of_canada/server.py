@@ -20,6 +20,7 @@ def create_server() -> FastMCP:
     """
     mcp = FastMCP(
         "bank-of-canada-mcp",
+        host="0.0.0.0",
         instructions=(
             "MCP server providing Bank of Canada exchange rates. "
             "Use the get_rate tool to fetch USD/CAD rates for a specific date."
