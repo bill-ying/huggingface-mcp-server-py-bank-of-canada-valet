@@ -24,8 +24,10 @@ LABEL org.opencontainers.image.title="mcp-server-py-bank-of-canada-valet" \
 RUN groupadd --gid 1000 appuser && \
     useradd  --uid 1000 --gid appuser --shell /bin/sh --create-home appuser
 
-# curl for the health check
+# Upgrade all packages to pull in security patches (fixes libgnutls30 CVE),
+# then install curl for the health check.
 RUN apt-get update && \
+    apt-get upgrade -y --no-install-recommends && \
     apt-get install -y --no-install-recommends curl && \
     rm -rf /var/lib/apt/lists/*
 
