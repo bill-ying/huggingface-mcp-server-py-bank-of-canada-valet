@@ -1,12 +1,12 @@
 # ── Build stage ──────────────────────────────────────────────────────────────
-FROM --platform=linux/amd64 python:3.13-slim-bookworm AS builder
+FROM --platform=linux/amd64 python:3.13-slim-trixie AS builder
 
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 # ── Runtime stage ─────────────────────────────────────────────────────────────
-FROM --platform=linux/amd64 python:3.13-slim-bookworm
+FROM --platform=linux/amd64 python:3.13-slim-trixie
 
 # Build-time arguments for OCI image labels
 ARG BUILD_DATE
@@ -24,7 +24,7 @@ LABEL org.opencontainers.image.title="mcp-server-py-bank-of-canada-valet" \
 RUN groupadd --gid 1000 appuser && \
     useradd  --uid 1000 --gid appuser --shell /bin/sh --create-home appuser
 
-# Upgrade all packages to pull in security patches (fixes libgnutls30 CVE),
+# Upgrade all packages to pull in latest security patches from Debian 13 (trixie),
 # then install curl for the health check.
 RUN apt-get update && \
     apt-get upgrade -y --no-install-recommends && \
