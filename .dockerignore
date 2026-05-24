@@ -1,0 +1,36 @@
+# Version control
+.git
+.gitignore
+
+# IDE
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.py[codz]
+*.egg-info/
+venv/
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+
+# Docker
+Dockerfile
+.dockerignore
+
+# CI/CD
+.github/
+
+# Docs
+README.md
+LICENSE
+docs/
+
+# Tests (not needed in production image)
+tests/
+requirements-dev.txt
+pyproject.toml
