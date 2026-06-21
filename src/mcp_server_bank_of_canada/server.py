@@ -6,6 +6,7 @@ stateless MCP server over Streamable HTTP transport.
 """
 
 from mcp.server.fastmcp import FastMCP
+from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from .providers.bank_of_canada_provider import BankOfCanadaProvider
@@ -30,7 +31,14 @@ def create_server() -> FastMCP:
     provider = BankOfCanadaProvider()
     service = FxRateService(provider)
 
-    @mcp.tool()
+    @mcp.tool(
+        annotations=ToolAnnotations(
+            title="Get Exchange Rate",
+            readOnlyHint=True,
+            idempotentHint=True,
+            destructiveHint=False,
+        )
+    )
     async def get_exchange_rate(
         from_currency: Currency = Field(description="Source currency (USD or CAD)"),
         to_currency: Currency = Field(description="Target currency (USD or CAD)"),
