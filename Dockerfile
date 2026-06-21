@@ -48,9 +48,9 @@ USER appuser
 
 EXPOSE 7860
 
-# curl with a 3-second timeout avoids hanging on the SSE stream.
+# Probe /mcp with a POST (Streamable HTTP transport uses POST).
 # -o /dev/null discards the body; -s suppresses progress output.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl --fail --max-time 3 --silent http://localhost:7860/sse -o /dev/null || exit 1
+    CMD curl --fail --max-time 3 --silent -X POST http://localhost:7860/mcp -o /dev/null || exit 1
 
 CMD ["uvicorn", "mcp_server_bank_of_canada.server:app", "--host", "0.0.0.0", "--port", "7860"]

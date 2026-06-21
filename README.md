@@ -44,16 +44,6 @@ Exchange rate on 2024-01-15: 1 USD = 1.3456 CAD
 - **Python** ≥ 3.12
 - **Docker** (for containerised deployment)
 
-### Installation
-
-```bash
-git clone https://github.com/bill-ying/mcp-server-py-bank-of-canada-valet.git
-cd mcp-server-py-bank-of-canada-valet
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt -r requirements-dev.txt
-```
-
 ### Run Tests
 
 ```bash
@@ -73,7 +63,7 @@ pytest --no-cov -v
 # Option 1: Via the MCP CLI (stdio transport — for direct MCP client use)
 mcp run mcp_server_bank_of_canada.server:mcp
 
-# Option 2: Via uvicorn (SSE transport — for MCP Inspector / AI agents)
+# Option 2: Via uvicorn (Streamable HTTP transport — for MCP Inspector / AI agents)
 uvicorn mcp_server_bank_of_canada.server:app --host 0.0.0.0 --port 7860
 
 # Option 3: Via Docker
@@ -81,7 +71,7 @@ docker build -t mcp-server-py-boc .
 docker run -p 7860:7860 mcp-server-py-boc
 ```
 
-The SSE endpoint will be available at `http://localhost:7860/sse`.
+The Streamable HTTP endpoint will be available at `http://localhost:7860/mcp`.
 
 ## Debugging
 
@@ -106,7 +96,7 @@ This project ships with a `.vscode/launch.json` containing three debug configura
 npx @modelcontextprotocol/inspector
 ```
 
-5. Connect the Inspector to `http://localhost:7860/sse` and invoke the `get_exchange_rate` tool.
+5. Connect the Inspector to `http://localhost:7860/mcp` and invoke the `get_exchange_rate` tool.
 
 ### Docker Debugging
 
@@ -124,8 +114,8 @@ docker logs -f boc-debug
 # Inspect OCI labels (confirm version traceability)
 docker inspect mcp-server-py-boc:local | jq '.[0].Config.Labels'
 
-# Test the SSE endpoint
-curl -N http://localhost:7860/sse
+# Test the Streamable HTTP endpoint
+curl -X POST http://localhost:7860/mcp
 ```
 
 ### Hugging Face Spaces Debugging
@@ -138,8 +128,8 @@ huggingface-cli login
 # Check Space status (building / running / stopped)
 hf space info <HF_USERNAME>/<HF_SPACE_NAME>
 
-# Test the live SSE endpoint
-curl -N https://<HF_USERNAME>-<HF_SPACE_NAME>.hf.space/sse
+# Test the live Streamable HTTP endpoint
+curl -X POST https://<HF_USERNAME>-<HF_SPACE_NAME>.hf.space/mcp
 ```
 
 ## CI/CD Pipeline

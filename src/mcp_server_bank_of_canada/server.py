@@ -2,7 +2,7 @@
 MCP Server Entry Point.
 
 Uses FastMCP — the standard Python MCP SDK — to serve a
-stateless MCP server over SSE or stdio transport.
+stateless MCP server over Streamable HTTP transport.
 """
 
 from mcp.server.fastmcp import FastMCP
@@ -46,5 +46,6 @@ def create_server() -> FastMCP:
 # Module-level server instance for uvicorn / CLI usage
 mcp = create_server()
 
-# ASGI app for Docker / Cloud Run deployment (uvicorn target)
-app = mcp.sse_app()
+# ASGI app for Docker / Cloud Run deployment (uvicorn target).
+# Uses Streamable HTTP transport (MCP 2025-03-26), served at /mcp.
+app = mcp.streamable_http_app()
