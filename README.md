@@ -81,7 +81,7 @@ This project ships with a `.vscode/launch.json` containing three debug configura
 
 | Configuration | Description |
 |---|---|
-| **MCP Server — uvicorn (SSE)** | Launch the server with `--reload`; set breakpoints in any source file |
+| **MCP Server — uvicorn (HTTP)** | Launch the server with `--reload`; set breakpoints in any source file |
 | **pytest — all tests** | Run the full test suite in the debugger |
 | **pytest — current file** | Debug only the test file open in the editor |
 
@@ -89,7 +89,7 @@ This project ships with a `.vscode/launch.json` containing three debug configura
 
 1. Open the project in VS Code.
 2. Set breakpoints in any source file (e.g., `fx_rate_service.py`, `get_rate_tool.py`).
-3. Press **F5** and select **MCP Server — uvicorn (SSE)**.
+3. Press **F5** and select **MCP Server — uvicorn (HTTP)**.
 4. Use the [MCP Inspector](https://github.com/modelcontextprotocol/inspector) to send tool calls:
 
 ```bash
