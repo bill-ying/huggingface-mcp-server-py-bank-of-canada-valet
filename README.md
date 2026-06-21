@@ -189,6 +189,16 @@ docker pull <DOCKER_USERNAME>/mcp-server-py-bank-of-canada-valet:<git-sha>
 docker run -p 7860:7860 <DOCKER_HUB_USERNAME>/mcp-server-py-bank-of-canada-valet:latest
 ```
 
+## MCP Server Links
+
+### Hugging Face Spaces
+https://bill-ying-bank-of-canada-mcp-server.hf.space/mcp [^1]
+
+### Smithery
+https://smithery.ai/servers/bill-ying/bank-of-canada-foreign-exchange-docker
+
+[^1]: **Note:** If the Hugging Face Space has been idle, it may take approximately 1 minute to spin up and restart before it can handle incoming requests.
+
 ## License
 
 This project is licensed under the GPLv3 License.
