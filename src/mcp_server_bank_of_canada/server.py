@@ -37,6 +37,7 @@ def create_server() -> FastMCP:
             readOnlyHint=True,
             idempotentHint=True,
             destructiveHint=False,
+            openWorldHint=True,
         )
     )
     async def get_exchange_rate(
