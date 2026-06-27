@@ -39,7 +39,7 @@ jobs:
           path: coverage.xml
 
       - name: Trivy – filesystem / dependency scan
-        uses: aquasecurity/trivy-action@v0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scan-ref: .
@@ -128,6 +128,8 @@ jobs:
     env:
       IMAGE_NAME: ${{ secrets.DOCKER_HUB_USERNAME }}/mcp-server-py-bank-of-canada-valet
     steps:
+      - uses: actions/checkout@v4
+
       - name: Download Docker image artifact
         uses: actions/download-artifact@v4
         with:
@@ -137,7 +139,7 @@ jobs:
         run: docker load -i image.tar
 
       - name: Trivy – container image scan
-        uses: aquasecurity/trivy-action@v0.28.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: image
           image-ref: ${{ env.IMAGE_NAME }}:${{ github.sha }}
@@ -171,6 +173,7 @@ jobs:
       - name: SonarCloud scan
         uses: SonarSource/sonarcloud-github-action@v3
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   # ── Push to Docker Hub ────────────────────────────────────────────────────────
