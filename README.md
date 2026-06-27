@@ -135,20 +135,20 @@ curl -X POST https://<HF_USERNAME>-<HF_SPACE_NAME>.hf.space/mcp
 ## CI/CD Pipeline
 
 ```
-                        ┌→ Test (pytest + Trivy FS scan) ─────────────────────────────────────────┐
-                        │                                                                         │
-                        ├→ Scan – SonarCloud (SAST) ──────────────────────────────────────────────┤
-                        │                                                                         ├→ Push to Docker Hub
-Push to main ───────────┤                              ┌→ Scan – Snyk (image) ────────────────────
-                        │                              │                                          ├→ Deploy to Hugging Face Spaces
-                        └→ Build Docker Image ─────────┤                                          │
-                                                       └→ Scan – Trivy (image) ───────────────────┘
+                        ┌→ Test (pytest + Trivy FS scan) ────────────────────────────────────────┐
+                        │                                                                        │
+                        ├→ Scan – SonarCloud (SAST) ─────────────────────────────────────────────┼→ Push to Docker Hub ──► Deploy to HF Spaces
+Push to main ───────────┤                              ┌→ Scan – Snyk (image) ───────────────────┤
+                        │                              │                                         │
+                        └→ Build Docker Image ─────────┤                                         │
+                                                       └→ Scan – Trivy (image) ──────────────────┘
 ```
 
 - **Test**, **Build**, and **SonarCloud** all run in parallel from the start.
 - **Scan – Snyk** and **Scan – Trivy** run in parallel after `build`, each loading the image from a shared tar artifact.
 - **SonarCloud** runs after `test` (needs the coverage report) but in parallel with `build` and the image scans.
-- **Push to Docker Hub** and **Deploy to Hugging Face Spaces** run in parallel after all scans and tests pass, on pushes to `main` only (not PRs).
+- **Push to Docker Hub** runs after all tests, scans, and quality gates pass on pushes to `main`.
+- **Deploy to Hugging Face Spaces** runs only after the image is successfully pushed to Docker Hub. It rewrites the `Dockerfile` to deploy the pre-built image directly from Docker Hub to ensure byte-for-byte consistency and sub-second deployment builds.
 - Docker layers are cached via GitHub Actions cache (`type=gha`) to speed up subsequent builds.
 - Snyk findings at `high` severity or above **block** deployment (`--severity-threshold=high`).
 
