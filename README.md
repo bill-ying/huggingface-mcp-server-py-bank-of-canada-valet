@@ -7,7 +7,7 @@ sdk: docker
 app_port: 7860
 ---
 
-# Bank of Canada Valet MCP Server
+# Bank of Canada Valet MCP Server (Docker + Hugging Face Spaces)
 
 > A [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server that provides historical exchange rates from the [Bank of Canada Valet API](https://www.bankofcanada.ca/valet/). Deployed as a Docker container on **Hugging Face Spaces**.
 
