@@ -38,9 +38,26 @@ jobs:
           name: coverage-report
           path: coverage.xml
 
-  # ── Build & Snyk Scan ────────────────────────────────────────────────────────
-  build-scan:
-    name: Build & Snyk Scan
+      - name: Trivy – filesystem / dependency scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: sarif
+          output: trivy-fs.sarif
+          severity: CRITICAL,HIGH
+          exit-code: "0"        # non-blocking; flip to 1 to enforce
+
+      - name: Upload Trivy FS results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-fs.sarif
+          category: trivy-filesystem
+
+  # ── Build ─────────────────────────────────────────────────────────────────────
+  build:
+    name: Build Docker Image
     runs-on: ubuntu-latest
     env:
       IMAGE_NAME: ${{ secrets.DOCKER_HUB_USERNAME }}/mcp-server-py-bank-of-canada-valet
@@ -62,10 +79,38 @@ jobs:
           build-args: |
             BUILD_DATE=${{ github.event.head_commit.timestamp }}
             GIT_SHA=${{ github.sha }}
-          # Export to Docker daemon so Snyk can inspect the local image
+          # Export to Docker daemon so it can be saved to a tar artifact
           load: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Export Docker image to tar
+        run: docker save ${{ env.IMAGE_NAME }}:${{ github.sha }} -o image.tar
+
+      - name: Upload Docker image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image
+          path: image.tar
+          retention-days: 1
+
+  # ── Scan – Snyk (parallel) ────────────────────────────────────────────────────
+  scan-snyk:
+    name: Scan – Snyk
+    runs-on: ubuntu-latest
+    needs: build
+    env:
+      IMAGE_NAME: ${{ secrets.DOCKER_HUB_USERNAME }}/mcp-server-py-bank-of-canada-valet
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+
+      - name: Load Docker image
+        run: docker load -i image.tar
 
       - name: Run Snyk to check Docker image for vulnerabilities
         uses: snyk/actions/docker@master
@@ -75,18 +120,69 @@ jobs:
           image: ${{ env.IMAGE_NAME }}:${{ github.sha }}
           args: --file=Dockerfile --severity-threshold=high
 
-  # ── Push & Deploy ─────────────────────────────────────────────────────────────
-  deploy:
-    name: Push & Deploy
+  # ── Scan – Trivy image (parallel) ────────────────────────────────────────────
+  scan-trivy:
+    name: Scan – Trivy (image)
     runs-on: ubuntu-latest
-    needs: [test, build-scan]
+    needs: build
+    env:
+      IMAGE_NAME: ${{ secrets.DOCKER_HUB_USERNAME }}/mcp-server-py-bank-of-canada-valet
+    steps:
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+
+      - name: Load Docker image
+        run: docker load -i image.tar
+
+      - name: Trivy – container image scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: image
+          image-ref: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          format: sarif
+          output: trivy-image.sarif
+          severity: CRITICAL,HIGH
+          exit-code: "0"        # non-blocking; flip to 1 to enforce
+
+      - name: Upload Trivy image results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-image.sarif
+          category: trivy-image
+
+  # ── Scan – SonarCloud (parallel with build) ──────────────────────────────────
+  scan-sonar:
+    name: Scan – SonarCloud (SAST)
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0    # full history required for accurate blame & new-code detection
+
+      - name: Download coverage report
+        uses: actions/download-artifact@v4
+        with:
+          name: coverage-report
+
+      - name: SonarCloud scan
+        uses: SonarSource/sonarcloud-github-action@v3
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  # ── Push to Docker Hub ────────────────────────────────────────────────────────
+  push-docker-hub:
+    name: Push to Docker Hub
+    runs-on: ubuntu-latest
+    needs: [test, scan-snyk, scan-trivy, scan-sonar]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     env:
       IMAGE_NAME: ${{ secrets.DOCKER_HUB_USERNAME }}/mcp-server-py-bank-of-canada-valet
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -97,7 +193,7 @@ jobs:
           username: ${{ secrets.DOCKER_HUB_USERNAME }}
           password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
-      - name: Build and push Docker image
+      - name: Build and push Docker image to Docker Hub
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -112,7 +208,18 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Deploy to Hugging Face Spaces
+  # ── Deploy to Hugging Face Spaces ────────────────────────────────────────────
+  deploy-huggingface:
+    name: Deploy to Hugging Face Spaces
+    runs-on: ubuntu-latest
+    needs: [test, scan-snyk, scan-trivy, scan-sonar]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push to Hugging Face Spaces
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |

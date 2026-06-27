@@ -135,15 +135,38 @@ curl -X POST https://<HF_USERNAME>-<HF_SPACE_NAME>.hf.space/mcp
 ## CI/CD Pipeline
 
 ```
-                        ┌→ Test (pytest + coverage) ───┐
-Push to main ───────────┤                              ├→ Push to Docker Hub → Deploy to HF Spaces
-                        └→ Build & Snyk Scan ──────────┘
+                        ┌→ Test (pytest + Trivy FS scan) ─────────────────────────────────────────┐
+                        │                                                                         │
+                        ├→ Scan – SonarCloud (SAST) ──────────────────────────────────────────────┤
+                        │                                                                         ├→ Push to Docker Hub
+Push to main ───────────┤                              ┌→ Scan – Snyk (image) ────────────────────
+                        │                              │                                          ├→ Deploy to Hugging Face Spaces
+                        └→ Build Docker Image ─────────┤                                          │
+                                                       └→ Scan – Trivy (image) ───────────────────┘
 ```
 
-- **Test** and **Build & Snyk Scan** run in parallel.
-- **Deploy** runs only after both pass and only on pushes to `main` (not PRs).
+- **Test**, **Build**, and **SonarCloud** all run in parallel from the start.
+- **Scan – Snyk** and **Scan – Trivy** run in parallel after `build`, each loading the image from a shared tar artifact.
+- **SonarCloud** runs after `test` (needs the coverage report) but in parallel with `build` and the image scans.
+- **Push to Docker Hub** and **Deploy to Hugging Face Spaces** run in parallel after all scans and tests pass, on pushes to `main` only (not PRs).
 - Docker layers are cached via GitHub Actions cache (`type=gha`) to speed up subsequent builds.
 - Snyk findings at `high` severity or above **block** deployment (`--severity-threshold=high`).
+
+### Security Scanning
+
+Three complementary scanners run on every build:
+
+| Scanner | Type | Scope | Cost | Token required |
+|---|---|---|---|---|
+| **[Snyk](https://snyk.io/)** | SCA / container | Docker image (OS + Python packages) | Free tier / paid | ✅ `SNYK_TOKEN` |
+| **[Trivy](https://trivy.dev/)** | SCA + container | Filesystem/deps + Docker image | **Free & open-source** | ❌ None |
+| **[SonarCloud](https://sonarcloud.io/)** | SAST / quality | Source code bugs, smells, security hotspots, coverage gate | **Free for public repos** | ✅ `SONAR_TOKEN` |
+
+> **Trivy** is the open-source, free edition of [Aqua Security](https://www.aquasec.com/)'s scanner — the same scanning engine that powers Aqua's commercial platform. It covers OS packages, language dependencies, misconfigurations, and secrets with no account or API key needed.
+>
+> **SonarCloud** analyses your own source code (not dependencies) for bugs, code smells, security hotspots, and coverage regressions. It is free for public repositories. Configuration lives in [`sonar-project.properties`](sonar-project.properties).
+>
+> Trivy and Snyk results are uploaded to the **GitHub Security → Code scanning** tab in SARIF format.
 
 ### GitHub Secrets Setup
 
@@ -154,6 +177,7 @@ Configure these secrets under **Settings → Secrets and variables → Actions**
 | `DOCKER_HUB_USERNAME` | Docker Hub username | Your Docker Hub account |
 | `DOCKER_HUB_TOKEN` | Docker Hub access token | Docker Hub → Account Settings → Security → New Access Token |
 | `SNYK_TOKEN` | Snyk API token | [Snyk Account Settings](https://app.snyk.io/account) |
+| `SONAR_TOKEN` | SonarCloud analysis token | [SonarCloud](https://sonarcloud.io) → My Account → Security → Generate Token |
 | `HF_TOKEN` | Hugging Face write-access token | [HF Settings → Access Tokens](https://huggingface.co/settings/tokens) → New token (role: **write**) |
 | `HF_USERNAME` | Your Hugging Face username | Your HF profile page |
 | `HF_SPACE_NAME` | Name of the target HF Space | The Space you create at [huggingface.co/new-space](https://huggingface.co/new-space) |
